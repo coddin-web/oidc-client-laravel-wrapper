@@ -2,12 +2,12 @@
 <phpunit bootstrap="vendor/autoload.php" colors="true" testdox="true">
     <coverage processUncoveredFiles="true">
         <include>
-            <directory suffix=".php">./app</directory>
+            <directory suffix=".php">./src</directory>
         </include>
     </coverage>
 
     <extensions>
-        <extension class="App\Tests\Hook\BypassFinalHook"/>
+        <extension class="Coddin\Tests\Hook\BypassFinalHook"/>
     </extensions>
 
     <testsuites>

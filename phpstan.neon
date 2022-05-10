@@ -1,5 +1,5 @@
 includes:
-    - ./vendor/nunomaduro/larastan/extension.neon
+#    - ./vendor/nunomaduro/larastan/extension.neon
     - ./vendor/phpstan/phpstan/conf/bleedingEdge.neon
 
 services:
@@ -16,6 +16,11 @@ parameters:
     paths:
         - src
         - tests
+    ignoreErrors:
+        - '#Function config_path not found\.#'
+        - '#Function config not found\.#'
+    parallel:
+        maximumNumberOfProcesses: 4
 
     level: 9
 

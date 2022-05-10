@@ -11,7 +11,6 @@ final class OpenIDConnectClientBuilder
 {
     public function execute(): OpenIDConnectClient
     {
-        // todo make Config helper?
         $openIDClient = new \Jumbojett\OpenIDConnectClient(
             provider_url: Config::get('oidc.provider.endpoint'),
             client_id: Config::get('oidc.client.id'),

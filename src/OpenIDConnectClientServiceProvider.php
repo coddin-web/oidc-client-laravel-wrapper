@@ -46,7 +46,7 @@ final class OpenIDConnectClientServiceProvider extends ServiceProvider
         $configuredAdaptor = config('oidc.token_storage.adaptor');
         if (!is_string($configuredAdaptor) && $configuredAdaptor !== null) {
             throw new \Exception(
-                'The configured token storage adaptor should be a FQN representation of the class you want to use'
+                'The configured token storage adaptor should be a FQN representation of the class you want to use',
             );
         }
 
@@ -56,7 +56,7 @@ final class OpenIDConnectClientServiceProvider extends ServiceProvider
 
         $this->app->bind(
             TokenStorageAdaptor::class,
-            $configuredAdaptor ?? IlluminateSessionAdaptorToken::class,
+            ($configuredAdaptor ?? IlluminateSessionAdaptorToken::class),
         );
     }
 }

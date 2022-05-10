@@ -40,12 +40,12 @@
         }
     ],
     "scripts": {
-        "phpcs": "phpcs --standard=./phpcs_codestyle.xml -n app",
-        "phpcs-fix": "phpcbf --standard=./phpcs_codestyle.xml -n app",
+        "phpcs": "phpcs --standard=./phpcs_codestyle.xml -n src",
+        "phpcs-fix": "phpcbf --standard=./phpcs_codestyle.xml -n src",
         "phpstan": "phpstan analyse --memory-limit=2G",
         "phpunit": "vendor/bin/phpunit -c phpunit.xml.dist",
         "phpunitwcov": "XDEBUG_MODE=coverage vendor/bin/phpunit -c phpunit.xml.dist --coverage-html reports/ --coverage-clover coverage/clover.xml",
-        "phpcoverage": "coverage-check coverage/clover.xml 100",
+        "phpcoverage": "coverage-check coverage/clover.xml 0",
         "checkup": [
             "@phpcs",
             "@phpstan",
