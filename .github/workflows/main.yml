@@ -1,0 +1,44 @@
+name: main
+
+on:
+  push:
+
+jobs:
+  tests:
+    name: PHPUnit
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: PHPCS (PSR-12, Slevomat)
+        run: ./vendor/bin/phpcs --standard=./phpcs_codestyle.xml -n src
+
+      - name: PHPStan
+        run: ./vendor/bin/phpstan analyse --memory-limit=2G
+
+      - name: PHPUnit with coverage clover
+        run: ./vendor/bin/phpunit -c ./phpunit.xml.dist --coverage-clover clover.xml
+
+      - uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./clover.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+
+      - name: Coverage check
+        run: ./vendor/bin/coverage-check coverage/clover.xml 0
