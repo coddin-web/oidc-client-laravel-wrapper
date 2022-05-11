@@ -1,6 +1,6 @@
 ![build](https://github.com/coddin-web/oidc-client-laravel-wrapper/actions/workflows/main.yml/badge.svg?event=push)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
+[![codecov](https://codecov.io/gh/coddin-web/oidc-client-laravel-wrapper/branch/main/graph/badge.svg?token=U5NCUCX0LH)](https://codecov.io/gh/coddin-web/oidc-client-laravel-wrapper)
 
 # OpenID Connect Client - Laravel wrapper
 A Laravel wrapper of jumbojett's OpenID Connect Client ([`jumbojett/openid-connect-php`][1]).

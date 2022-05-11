@@ -11,8 +11,8 @@ return [
         'use_pkce' => false,
         'redirect_url' => '/',
     ],
-    'cert' => [
-        'path' => env('OIDC_CERT_PATH'),
+    'private_key' => [
+        'base64' => env('OIDC_BASE64_PRIVATE_KEY'),
     ],
     'token_storage' => [
         'adaptor' => null,
