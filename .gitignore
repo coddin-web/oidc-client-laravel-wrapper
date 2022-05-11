@@ -2,3 +2,7 @@ composer.lock
 /vendor/
 
 .env
+
+coverage/
+reports/
+.phpunit.result.cache
