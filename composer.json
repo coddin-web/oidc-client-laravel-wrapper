@@ -45,7 +45,7 @@
         "phpstan": "phpstan analyse --memory-limit=2G",
         "phpunit": "vendor/bin/phpunit -c phpunit.xml.dist",
         "phpunitwcov": "XDEBUG_MODE=coverage vendor/bin/phpunit -c phpunit.xml.dist --coverage-html reports/ --coverage-clover coverage/clover.xml",
-        "phpcoverage": "coverage-check coverage/clover.xml 0",
+        "phpcoverage": "coverage-check coverage/clover.xml 85",
         "checkup": [
             "@phpcs",
             "@phpstan",

@@ -15,11 +15,6 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
     ) {
     }
 
-    public function put(Token $token): void
-    {
-        $this->sessionStore->put($this->getStorageKey(), $token);
-    }
-
     public function get(): Token
     {
         $token = $this->sessionStore->get($this->getStorageKey());
@@ -29,6 +24,16 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
         }
 
         return $token;
+    }
+
+    public function put(Token $token): void
+    {
+        $this->sessionStore->put($this->getStorageKey(), $token);
+    }
+
+    public function forget(): void
+    {
+        $this->sessionStore->forget($this->getStorageKey());
     }
 
     public function getStorageKey(): string

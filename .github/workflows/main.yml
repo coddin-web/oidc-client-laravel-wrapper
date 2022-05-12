@@ -45,4 +45,4 @@ jobs:
           fail_ci_if_error: true
 
       - name: "Coverage check"
-        run: ./vendor/bin/coverage-check clover.xml 0
+        run: ./vendor/bin/coverage-check clover.xml 85

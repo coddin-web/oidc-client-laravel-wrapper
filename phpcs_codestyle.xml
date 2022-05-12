@@ -48,6 +48,7 @@
     <rule ref="Squiz.ControlStructures.ElseIfDeclaration"/>
     <rule ref="Squiz.Commenting.BlockComment">
         <exclude name="Squiz.Commenting.BlockComment.WrongStart"/>
+        <exclude name="Squiz.Commenting.BlockComment.SingleLine"/>
         <exclude name="Squiz.Commenting.BlockComment.NoEmptyLineAfter"/>
     </rule>
     <rule ref="Squiz.Commenting.DocCommentAlignment"/>

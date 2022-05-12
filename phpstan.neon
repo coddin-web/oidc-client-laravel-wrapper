@@ -18,7 +18,6 @@ parameters:
     ignoreErrors:
         - '#Function config_path not found\.#'
         - '#Function config not found\.#'
-        - '#Return type of call to method PHPUnit\\Framework\\TestCase\:\:createPartialMock\(\) contains unresolvable type.#'
     parallel:
         maximumNumberOfProcesses: 4
 

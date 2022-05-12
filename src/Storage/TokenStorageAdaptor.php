@@ -9,12 +9,14 @@ use Lcobucci\JWT\Token as TokenInterface;
 
 interface TokenStorageAdaptor
 {
-    public function put(TokenInterface $token): void;
-
     /**
      * @throws MissingTokenException
      */
     public function get(): TokenInterface;
+
+    public function put(TokenInterface $token): void;
+
+    public function forget(): void;
 
     public function getStorageKey(): string;
 }
