@@ -17,4 +17,8 @@ return [
     'token_storage' => [
         'adaptor' => null,
     ],
+    'curl' => [
+        'verify_host' => env('OIDC_CURL_VERIFY_HOST', true),
+        'verify_peer' => env('OIDC_CURL_VERIFY_PEER', true),
+    ],
 ];

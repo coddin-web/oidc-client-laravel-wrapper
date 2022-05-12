@@ -34,6 +34,9 @@ final class OpenIDConnectClientBuilder
             $openIDClient->setCodeChallengeMethod('S256');
         }
 
+        $openIDClient->setVerifyHost($this->configRepository->getAsBool('oidc.curl.verify_host'));
+        $openIDClient->setVerifyPeer($this->configRepository->getAsBool('oidc.curl.verify_peer'));
+
         $openIDClient->setRedirectURL(
             url: rtrim($appUrl, '/') . $this->configRepository->getAsString('oidc.client.redirect_url'),
         );

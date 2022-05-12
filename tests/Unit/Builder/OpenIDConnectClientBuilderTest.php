@@ -51,15 +51,19 @@ final class OpenIDConnectClientBuilderTest extends TestCase
             );
 
         $this->configRepository
-            ->expects(self::exactly(2))
+            ->expects(self::exactly(4))
             ->method('getAsBool')
             ->withConsecutive(
                 ['oidc.client.use_pkce'],
                 ['oidc.client.use_pkce'],
+                ['oidc.curl.verify_host'],
+                ['oidc.curl.verify_peer'],
             )
             ->willReturnOnConsecutiveCalls(
                 false,
                 false,
+                true,
+                true,
             );
 
         $openIdConnectBuilder = new OpenIDConnectClientBuilder(
@@ -101,13 +105,17 @@ final class OpenIDConnectClientBuilderTest extends TestCase
             );
 
         $this->configRepository
-            ->expects(self::exactly(2))
+            ->expects(self::exactly(4))
             ->method('getAsBool')
             ->withConsecutive(
                 ['oidc.client.use_pkce'],
                 ['oidc.client.use_pkce'],
+                ['oidc.curl.verify_host'],
+                ['oidc.curl.verify_peer'],
             )
             ->willReturnOnConsecutiveCalls(
+                true,
+                true,
                 true,
                 true,
             );
