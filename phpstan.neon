@@ -15,8 +15,6 @@ parameters:
     paths:
         - src
         - tests
-    ignoreErrors:
-        - '#Return type of call to method PHPUnit\\Framework\\TestCase\:\:createPartialMock\(\) contains unresolvable type.#'
     parallel:
         maximumNumberOfProcesses: 4
 
