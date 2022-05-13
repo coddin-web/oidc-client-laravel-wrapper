@@ -36,12 +36,13 @@ jobs:
           composer phpstan
 
       - name: "PHPUnit with coverage clover"
-        run: ./vendor/bin/phpunit -c ./phpunit.xml.dist --coverage-clover clover.xml
+        run: |
+          composer phpunitwcov
 
       - uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./clover.xml
+          files: ./coverage/clover.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
