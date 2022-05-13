@@ -28,10 +28,12 @@ jobs:
           composer install --no-interaction --prefer-dist
 
       - name: "PHPCS (PSR-12, Slevomat)"
-        run: ./vendor/bin/phpcs --standard=./phpcs_codestyle.xml -n src
+        run: |
+          composer phpcs
 
       - name: "PHPStan"
-        run: ./vendor/bin/phpstan analyse --memory-limit=2G
+        run: |
+          composer phpstan
 
       - name: "PHPUnit with coverage clover"
         run: ./vendor/bin/phpunit -c ./phpunit.xml.dist --coverage-clover clover.xml
@@ -45,4 +47,5 @@ jobs:
           fail_ci_if_error: true
 
       - name: "Coverage check"
-        run: ./vendor/bin/coverage-check clover.xml 85
+        run: |
+          composer phpcoverage
