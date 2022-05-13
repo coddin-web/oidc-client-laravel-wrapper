@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Coddin\OpenIDConnectClient\Storage\Exception;
+namespace Coddin\OpenIDConnectClient\Service\Token\Storage\Exception;
 
 final class MissingTokenException extends \Exception
 {

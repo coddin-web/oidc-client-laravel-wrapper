@@ -6,8 +6,8 @@ namespace Coddin\OpenIDConnectClient;
 
 use Coddin\OpenIDConnectClient\Http\Middleware\OpenIDConnectAuthenticated;
 use Coddin\OpenIDConnectClient\Http\Middleware\TokenAuthenticated;
-use Coddin\OpenIDConnectClient\Storage\IlluminateSessionAdaptorToken;
-use Coddin\OpenIDConnectClient\Storage\TokenStorageAdaptor;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +31,8 @@ final class OpenIDConnectClientServiceProvider extends ServiceProvider
             name: 'oidc.api',
             middleware: [TokenAuthenticated::class],
         );
+
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 
     /**

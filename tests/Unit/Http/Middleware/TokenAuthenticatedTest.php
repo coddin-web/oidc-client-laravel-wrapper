@@ -6,23 +6,21 @@ namespace Coddin\Tests\Unit\Http\Middleware;
 
 use Coddin\OpenIDConnectClient\Builder\JWTVerifierBuilder;
 use Coddin\OpenIDConnectClient\Http\Middleware\TokenAuthenticated;
-use Coddin\OpenIDConnectClient\Storage\TokenStorageAdaptor;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Coddin\Tests\Helper\ClosureTestClass;
 use Illuminate\Http\Request;
-use Illuminate\Routing\ResponseFactory;
 use Illuminate\Support\Facades\Log;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Validator;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // phpcs:disable PSR1.Methods.CamelCapsMethodName
-final class TokenAuthenticatedTest extends TestCase
+final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
 {
-    /** @var ResponseFactory & MockObject */
-    private ResponseFactory|MockObject $responseFactory;
-    /** @var TokenStorageAdaptor & MockObject */
+    /** @var \Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor & MockObject */
     private TokenStorageAdaptor|MockObject $storageAdaptor;
     /** @var JWTVerifierBuilder & MockObject */
     private JWTVerifierBuilder|MockObject $jwtVerifierBuilder;
@@ -34,7 +32,8 @@ final class TokenAuthenticatedTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->responseFactory = $this->createMock(ResponseFactory::class);
+        parent::setUp();
+
         $this->storageAdaptor = $this->createMock(TokenStorageAdaptor::class);
         $this->jwtVerifierBuilder = $this->createPartialMock(JWTVerifierBuilder::class, ['execute']);
 
@@ -50,10 +49,7 @@ final class TokenAuthenticatedTest extends TestCase
             ->method('bearerToken')
             ->willReturn(null);
 
-        $this->responseFactory
-            ->expects(self::once())
-            ->method('make')
-            ->with(null, 401);
+        self::expectException(HttpException::class);
 
         $tokenAuthenticated = $this->createTokenAuthenticated();
         $this->handle($tokenAuthenticated, false);
@@ -89,10 +85,7 @@ final class TokenAuthenticatedTest extends TestCase
             ->once()
             ->withSomeOfArgs('Verifying the Bearer Token failed');
 
-        $this->responseFactory
-            ->expects(self::once())
-            ->method('make')
-            ->with(null, 401);
+        self::expectException(HttpException::class);
 
         $tokenAuthenticated = $this->createTokenAuthenticated();
         $this->handle($tokenAuthenticated, false);
@@ -106,7 +99,7 @@ final class TokenAuthenticatedTest extends TestCase
             ->method('bearerToken')
             ->willReturn('bearertoken');
 
-        $jwtVerifier = $this->createPartialMock(Configuration::class, ['parser']);
+        $jwtVerifier = $this->createPartialMock(Configuration::class, ['parser', 'validator']);
         $this->jwtVerifierBuilder
             ->expects(self::once())
             ->method('execute')
@@ -118,12 +111,22 @@ final class TokenAuthenticatedTest extends TestCase
             ->method('parser')
             ->willReturn($parser);
 
-        $token = $this->createMock(Token::class);
+        $token = $this->createPartialMock(Token::class, []);
         $parser
             ->expects(self::once())
             ->method('parse')
             ->with('bearertoken')
             ->willReturn($token);
+
+        $validator = $this->createPartialMock(Validator::class, ['assert', 'validate']);
+        $jwtVerifier
+            ->expects(self::once())
+            ->method('validator')
+            ->willReturn($validator);
+
+        $validator
+            ->expects(self::once())
+            ->method('assert');
 
         $this->storageAdaptor
             ->expects(self::once())
@@ -139,7 +142,6 @@ final class TokenAuthenticatedTest extends TestCase
     private function createTokenAuthenticated(): TokenAuthenticated
     {
         return new TokenAuthenticated(
-            responseFactory: $this->responseFactory,
             storageAdaptor: $this->storageAdaptor,
             jwtVerifierBuilder: $this->jwtVerifierBuilder,
         );

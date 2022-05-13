@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Coddin\Tests\Unit\Storage;
 
-use Coddin\OpenIDConnectClient\Storage\Exception\MissingTokenException;
-use Coddin\OpenIDConnectClient\Storage\IlluminateSessionAdaptorToken;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\Exception\MissingTokenException;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken;
 use Illuminate\Session\Store;
 use Lcobucci\JWT\Token;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -34,7 +34,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         self::expectException(MissingTokenException::class);
         self::expectExceptionMessage('Stored token is not of instance `Lcobucci\JWT\Token`');
 
-        $tokenAdaptor = new IlluminateSessionAdaptorToken(
+        $tokenAdaptor = new \Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
         );
         $tokenAdaptor->get();
@@ -43,7 +43,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
     /** @test */
     public function get_token(): void
     {
-        $token = $this->createMock(Token::class);
+        $token = $this->createPartialMock(Token::class, []);
 
         $this->store
             ->expects(self::once())
@@ -51,7 +51,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
             ->with('oidc_id_token')
             ->willReturn($token);
 
-        $tokenAdaptor = new IlluminateSessionAdaptorToken(
+        $tokenAdaptor = new \Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
         );
         /** @noinspection PhpUnhandledExceptionInspection */
@@ -61,7 +61,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
     /** @test */
     public function put_token(): void
     {
-        $token = $this->createMock(Token::class);
+        $token = $this->createPartialMock(Token::class, []);
 
         $this->store
             ->expects(self::once())

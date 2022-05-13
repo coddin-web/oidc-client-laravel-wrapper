@@ -6,10 +6,13 @@ namespace Coddin\OpenIDConnectClient\Builder;
 
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
+use Lcobucci\Clock\FrozenClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
-use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 
 final class JWTVerifierBuilder
 {
@@ -23,17 +26,27 @@ final class JWTVerifierBuilder
      */
     public function execute(): Configuration
     {
+        $signer = new Sha256();
+        $key = InMemory::base64Encoded(
+            contents: $this->configRepository->getAsString('oidc.private_key.base64'),
+        );
+
         $configuration = Configuration::forSymmetricSigner(
-            new Sha256(),
-            InMemory::base64Encoded(
-                $this->configRepository->getAsString('oidc.private_key.base64'),
-            ),
+            signer: $signer,
+            key: $key,
         );
 
         $configuration
             ->setValidationConstraints(
-                new IdentifiedBy(
-                    $this->configRepository->getAsString('oidc.provider.issuer'),
+                new IssuedBy(
+                    id: $this->configRepository->getAsString('oidc.provider.issuer'),
+                ),
+                new SignedWith(
+                    signer: $signer,
+                    key: $key,
+                ),
+                new StrictValidAt(
+                    clock: new FrozenClock(new \DateTimeImmutable()),
                 ),
             );
 

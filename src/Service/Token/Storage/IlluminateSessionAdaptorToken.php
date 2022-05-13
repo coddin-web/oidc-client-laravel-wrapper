@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Coddin\OpenIDConnectClient\Storage;
+namespace Coddin\OpenIDConnectClient\Service\Token\Storage;
 
-use Coddin\OpenIDConnectClient\Storage\Exception\MissingTokenException;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\Exception\MissingTokenException;
 use Illuminate\Session\Store;
 use Lcobucci\JWT\Token;
 
@@ -15,11 +15,21 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
     ) {
     }
 
-    public function get(): Token
+    public function find(): ?Token
     {
         $token = $this->sessionStore->get($this->getStorageKey());
-
         if (!$token instanceof Token) {
+            return null;
+        }
+
+        return $token;
+    }
+
+    public function get(): Token
+    {
+        $token = $this->find();
+
+        if ($token === null) {
             throw MissingTokenException::make();
         }
 

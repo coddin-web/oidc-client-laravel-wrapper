@@ -14,6 +14,9 @@ A few things are necessary to make this library work:
 - the application this package is implemented in should have the same private key as your IDP
   - this is needed to verify / parse the JWT
 
+When this package is done verifying the token is legit an Event will be fired to be consumed by the target application.
+This event should e.g. perform `Auth::login($user)` to fully let Laravel know this package has handled the authorization.
+
 You can set up an IDP with [`laravel/passport`][2] or set up your own with e.g. a Symfony application in combination with 
 [`steverhoades/oauth2-openid-connect-server`][3]
 

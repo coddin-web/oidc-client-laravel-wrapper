@@ -6,23 +6,24 @@ namespace Coddin\Tests\Unit\Http\Middleware;
 
 use Coddin\OpenIDConnectClient\Builder\JWTVerifierBuilder;
 use Coddin\OpenIDConnectClient\Builder\OpenIDConnectClientBuilder;
+use Coddin\OpenIDConnectClient\Event\UserAuthorizedEvent;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
 use Coddin\OpenIDConnectClient\Http\Middleware\OpenIDConnectAuthenticated;
-use Coddin\OpenIDConnectClient\Storage\Exception\MissingTokenException;
-use Coddin\OpenIDConnectClient\Storage\TokenStorageAdaptor;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Coddin\Tests\Helper\ClosureTestClass;
 use Illuminate\Http\Request;
 use Illuminate\Routing\ResponseFactory;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Token;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // phpcs:disable PSR1.Methods.CamelCapsMethodName
-final class OpenIDConnectAuthenticatedTest extends TestCase
+final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
 {
     /** @var ResponseFactory & MockObject */
     private ResponseFactory|MockObject $responseFactory;
@@ -42,6 +43,8 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->responseFactory = $this->createMock(ResponseFactory::class);
         $this->openIDConnectClientBuilder = $this->createPartialMock(OpenIDConnectClientBuilder::class, ['execute']);
         $this->jwtVerifierBuilder = $this->createPartialMock(JWTVerifierBuilder::class, ['execute']);
@@ -65,7 +68,7 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
 
         $this->storageAdaptor
             ->expects(self::once())
-            ->method('get')
+            ->method('find')
             ->willReturn($token);
 
         $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
@@ -79,8 +82,8 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
     {
         $this->storageAdaptor
             ->expects(self::once())
-            ->method('get')
-            ->willThrowException(new MissingTokenException());
+            ->method('find')
+            ->willReturn(null);
 
         $this->jwtVerifierBuilder
             ->expects(self::once())
@@ -103,10 +106,7 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
         Log::shouldReceive('error')
             ->withSomeOfArgs('this_is_a_message');
 
-        $this->responseFactory
-            ->expects(self::once())
-            ->method('make')
-            ->with(null, 401);
+        self::expectException(HttpException::class);
 
         $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
         $this->handle($openIDConnectAuthenticated, false);
@@ -117,8 +117,8 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
     {
         $this->storageAdaptor
             ->expects(self::once())
-            ->method('get')
-            ->willThrowException(new MissingTokenException());
+            ->method('find')
+            ->willReturn(null);
 
         $jwtVerifier = $this->createPartialMock(Configuration::class, ['parser']);
         $this->jwtVerifierBuilder
@@ -147,7 +147,27 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
             ->method('getIdToken')
             ->willReturn('id_token.second_part.third_part');
 
-        $token = $this->createMock(Token::class);
+        $dataSet = $this->createPartialMock(Token\DataSet::class, ['get']);
+        $dataSet
+            ->expects(self::exactly(3))
+            ->method('get')
+            ->withConsecutive(
+                ['sub'],
+                ['name'],
+                ['email'],
+            )
+            ->willReturnOnConsecutiveCalls(
+                'uuid',
+                'name',
+                'email@test.test',
+            );
+
+        $token = $this->createPartialMock(Token\Plain::class, ['claims']);
+        $token
+            ->expects(self::exactly(3))
+            ->method('claims')
+            ->willReturn($dataSet);
+
         $parser
             ->expects(self::once())
             ->method('parse')
@@ -159,8 +179,12 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
             ->method('put')
             ->with($token);
 
+        Event::fake();
+
         $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
         $return = $this->handle($openIDConnectAuthenticated);
+
+        Event::assertDispatched(UserAuthorizedEvent::class);
 
         self::assertEquals('arbitrary_value', $return);
     }
