@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Coddin\Tests\Unit\Http\Middleware;
 
 use Coddin\OpenIDConnectClient\Builder\JWTVerifierBuilder;
+use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
 use Coddin\OpenIDConnectClient\Http\Middleware\TokenAuthenticated;
 use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Coddin\Tests\Helper\ClosureTestClass;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Validation\ConstraintViolation;
+use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Lcobucci\JWT\Validator;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -56,6 +59,25 @@ final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
     }
 
     /** @test */
+    public function bearerToken_config_failed(): void
+    {
+        $this->request
+            ->expects(self::once())
+            ->method('bearerToken')
+            ->willReturn('bearertoken');
+
+        $this->jwtVerifierBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willThrowException(new ConfigRepositoryException());
+
+        self::expectException(HttpException::class);
+
+        $tokenAuthenticated = $this->createTokenAuthenticated();
+        $this->handle($tokenAuthenticated, false);
+    }
+
+    /** @test */
     public function bearerToken_verification_failed(): void
     {
         $this->request
@@ -84,6 +106,53 @@ final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
         Log::shouldReceive('error')
             ->once()
             ->withSomeOfArgs('Verifying the Bearer Token failed');
+
+        self::expectException(HttpException::class);
+
+        $tokenAuthenticated = $this->createTokenAuthenticated();
+        $this->handle($tokenAuthenticated, false);
+    }
+
+    /** @test */
+    public function verify_token_constraint_violated(): void
+    {
+        $this->request
+            ->expects(self::once())
+            ->method('bearerToken')
+            ->willReturn('bearertoken');
+
+        $jwtVerifier = $this->createPartialMock(Configuration::class, ['parser', 'validator']);
+        $this->jwtVerifierBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willReturn($jwtVerifier);
+
+        $parser = $this->createPartialMock(Parser::class, ['parse']);
+        $jwtVerifier
+            ->expects(self::once())
+            ->method('parser')
+            ->willReturn($parser);
+
+        $token = $this->createPartialMock(Token::class, []);
+        $parser
+            ->expects(self::once())
+            ->method('parse')
+            ->with('bearertoken')
+            ->willReturn($token);
+
+        $validator = $this->createPartialMock(Validator::class, ['assert', 'validate']);
+        $jwtVerifier
+            ->expects(self::once())
+            ->method('validator')
+            ->willReturn($validator);
+
+        $validator
+            ->expects(self::once())
+            ->method('assert')
+            ->willThrowException(RequiredConstraintsViolated::fromViolations(new ConstraintViolation('Violation')));
+
+        Log::shouldReceive('error')
+            ->withSomeOfArgs('Validating the Bearer Token failed: Violation');
 
         self::expectException(HttpException::class);
 

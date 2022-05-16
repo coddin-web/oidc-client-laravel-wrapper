@@ -10,6 +10,10 @@ return [
         'secret' => env('OIDC_CLIENT_SECRET'),
         'use_pkce' => false,
         'redirect_url' => '/',
+        'scopes' => [
+            'profile',
+            'email',
+        ],
     ],
     'private_key' => [
         'base64' => env('OIDC_BASE64_PRIVATE_KEY'),

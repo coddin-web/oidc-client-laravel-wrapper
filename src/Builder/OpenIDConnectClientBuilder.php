@@ -41,6 +41,8 @@ final class OpenIDConnectClientBuilder
             url: rtrim($appUrl, '/') . $this->configRepository->getAsString('oidc.client.redirect_url'),
         );
 
+        $openIDClient->addScope($this->configRepository->getAsArray('oidc.client.scopes'));
+
         return $openIDClient;
     }
 

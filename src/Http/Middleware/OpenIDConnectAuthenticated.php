@@ -52,7 +52,7 @@ final class OpenIDConnectAuthenticated
             );
 
             $userUuid = $token->claims()->get('sub');
-            $userName = $token->claims()->get('name');
+            $userName = $token->claims()->get('nickname');
             $userEmail = $token->claims()->get('email');
 
             UserAuthorizedEvent::dispatch(
@@ -86,6 +86,12 @@ final class OpenIDConnectAuthenticated
         Request $request,
         \Closure $next,
     ): mixed {
+        if ($token->isExpired(new \DateTimeImmutable())) {
+            $this->tokenStorageAdaptor->forget();
+
+            return $this->responseFactory->redirectTo($request->getPathInfo());
+        }
+
         try {
             $openIDClient = $this->openIDConnectClientBuilder->execute();
             $stillActiveResponse = $openIDClient->introspectToken(
@@ -96,7 +102,7 @@ final class OpenIDConnectAuthenticated
             throw new HttpException(Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        if (!is_object($stillActiveResponse)) {
+        if (!\is_object($stillActiveResponse)) {
             $this->tokenStorageAdaptor->forget();
 
             return $this->responseFactory->redirectTo($request->getPathInfo());

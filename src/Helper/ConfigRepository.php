@@ -40,4 +40,19 @@ final class ConfigRepository
 
         return $value;
     }
+
+    /**
+     * @return array<mixed, mixed>
+     * @throws ConfigRepositoryException
+     */
+    public function getAsArray(string $key): array
+    {
+        $value = $this->configRepository->get($key);
+
+        if (!is_array($value)) {
+            throw ConfigRepositoryException::notAnArray();
+        }
+
+        return $value;
+    }
 }

@@ -17,16 +17,25 @@ final class UserAuthorizedEvent
     ) {
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
     public function getUuid(): string
     {
         return $this->uuid;
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
     public function getEmail(): string
     {
         return $this->email;

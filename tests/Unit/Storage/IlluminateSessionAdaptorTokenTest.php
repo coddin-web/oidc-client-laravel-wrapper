@@ -73,4 +73,17 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         );
         $tokenAdaptor->put($token);
     }
+
+    /** @test */
+    public function forget_token(): void
+    {
+        $this->store
+            ->expects(self::once())
+            ->method('forget');
+
+        $tokenAdaptor = new IlluminateSessionAdaptorToken(
+            sessionStore: $this->store,
+        );
+        $tokenAdaptor->forget();
+    }
 }

@@ -2,7 +2,7 @@
     "name": "coddin-web/oidc-client-laravel-wrapper",
     "description": "A Laravel wrapper of jumbojett's OpenID Connect Client",
     "type": "library",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
@@ -41,12 +41,12 @@
         }
     ],
     "scripts": {
-        "phpcs": "phpcs --standard=./phpcs_codestyle.xml -n src",
-        "phpcs-fix": "phpcbf --standard=./phpcs_codestyle.xml -n src",
+        "phpcs": "phpcs --standard=./phpcs_codestyle.xml -n src tests",
+        "phpcs-fix": "phpcbf --standard=./phpcs_codestyle.xml -n src tests",
         "phpstan": "phpstan analyse --memory-limit=2G",
         "phpunit": "vendor/bin/phpunit -c phpunit.xml.dist",
         "phpunitwcov": "XDEBUG_MODE=coverage vendor/bin/phpunit -c phpunit.xml.dist --coverage-html reports/ --coverage-clover coverage/clover.xml",
-        "phpcoverage": "coverage-check coverage/clover.xml 63",
+        "phpcoverage": "coverage-check coverage/clover.xml 100",
         "checkup": [
             "@phpcs",
             "@phpstan",

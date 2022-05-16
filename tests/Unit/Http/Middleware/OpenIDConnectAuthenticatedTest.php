@@ -8,6 +8,7 @@ use Coddin\OpenIDConnectClient\Builder\JWTVerifierBuilder;
 use Coddin\OpenIDConnectClient\Builder\OpenIDConnectClientBuilder;
 use Coddin\OpenIDConnectClient\Event\UserAuthorizedEvent;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
+use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
 use Coddin\OpenIDConnectClient\Http\Middleware\OpenIDConnectAuthenticated;
 use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Coddin\Tests\Helper\ClosureTestClass;
@@ -19,11 +20,14 @@ use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Token\DataSet;
+use Lcobucci\JWT\Token\Parser;
+use Orchestra\Testbench\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // phpcs:disable PSR1.Methods.CamelCapsMethodName
-final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
+final class OpenIDConnectAuthenticatedTest extends TestCase
 {
     /** @var ResponseFactory & MockObject */
     private ResponseFactory|MockObject $responseFactory;
@@ -56,10 +60,46 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
     }
 
     /** @test */
-    public function token_expired(): void
+    public function existing_token_expired(): void
     {
-        self::markTestIncomplete('Incomplete test, wip');
-        /* @phpstan-ignore-next-line */
+        $token = $this->createMock(Token::class);
+        $token
+            ->expects(self::once())
+            ->method('isExpired')
+            ->willReturn(true);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->willReturn($token);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('forget');
+
+        $this->responseFactory
+            ->expects(self::once())
+            ->method('redirectTo')
+            ->with('/foobar');
+
+        $this->request
+            ->expects(self::once())
+            ->method('getPathInfo')
+            ->willReturn('/foobar');
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
+    }
+
+    /**
+     * @test
+     * @dataProvider existingTokenIntrospectData
+     * @param class-string<\Throwable> $exceptionThrow
+     */
+    public function existing_token_introspect_fail(
+        \Exception $exceptionCatch,
+        string $exceptionThrow,
+    ): void {
         $token = $this->createMock(Token::class);
         $token
             ->expects(self::once())
@@ -71,10 +111,161 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->method('find')
             ->willReturn($token);
 
+        $openIDClient = $this->createMock(OpenIDConnectClient::class);
+        $openIDClient
+            ->expects(self::once())
+            ->method('introspectToken')
+            ->willThrowException($exceptionCatch);
+
+        $this->openIDConnectClientBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willReturn($openIDClient);
+
+        self::expectException($exceptionThrow);
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
+    }
+
+    /**
+     * @return array<int, array{ConfigRepositoryException|OpenIDConnectClientException, string}>
+     */
+    private function existingTokenIntrospectData(): array
+    {
+        return [
+            [
+                new ConfigRepositoryException(''),
+                HttpException::class,
+            ],
+            [
+                new OpenIDConnectClientException(''),
+                HttpException::class,
+            ],
+        ];
+    }
+
+    /** @test */
+    public function existing_token_introspect_failed_response(): void
+    {
+        $token = $this->createMock(Token::class);
+        $token
+            ->expects(self::once())
+            ->method('isExpired')
+            ->willReturn(false);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->willReturn($token);
+
+        $openIDClient = $this->createMock(OpenIDConnectClient::class);
+        $openIDClient
+            ->expects(self::once())
+            ->method('introspectToken')
+            ->willReturn([]);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('forget');
+
+        $this->openIDConnectClientBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willReturn($openIDClient);
+
+        $this->responseFactory
+            ->expects(self::once())
+            ->method('redirectTo')
+            ->with('/foobar');
+
+        $this->request
+            ->expects(self::once())
+            ->method('getPathInfo')
+            ->willReturn('/foobar');
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
+    }
+
+    /** @test */
+    public function existing_token_introspect_active_token(): void
+    {
+        $token = $this->createMock(Token::class);
+        $token
+            ->expects(self::once())
+            ->method('isExpired')
+            ->willReturn(false);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->willReturn($token);
+
+        $activeResponse = new \stdClass();
+        $activeResponse->active = true;
+
+        $openIDClient = $this->createMock(OpenIDConnectClient::class);
+        $openIDClient
+            ->expects(self::once())
+            ->method('introspectToken')
+            ->willReturn($activeResponse);
+
+        $this->openIDConnectClientBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willReturn($openIDClient);
+
         $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
         $return = $this->handle($openIDConnectAuthenticated);
 
         self::assertEquals('arbitrary_value', $return);
+    }
+
+    /** @test */
+    public function existing_token_introspect_inactive_token(): void
+    {
+        $token = $this->createMock(Token::class);
+        $token
+            ->expects(self::once())
+            ->method('isExpired')
+            ->willReturn(false);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->willReturn($token);
+
+        $activeResponse = new \stdClass();
+        $activeResponse->active = false;
+
+        $openIDClient = $this->createMock(OpenIDConnectClient::class);
+        $openIDClient
+            ->expects(self::once())
+            ->method('introspectToken')
+            ->willReturn($activeResponse);
+
+        $this->openIDConnectClientBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willReturn($openIDClient);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('forget');
+
+        $this->responseFactory
+            ->expects(self::once())
+            ->method('redirectTo')
+            ->with('/foobar');
+
+        $this->request
+            ->expects(self::once())
+            ->method('getPathInfo')
+            ->willReturn('/foobar');
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
     }
 
     /** @test */
@@ -113,7 +304,28 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
     }
 
     /** @test */
-    public function authenticate(): void
+    public function configRepository_exception(): void
+    {
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->willReturn(null);
+
+        $this->jwtVerifierBuilder
+            ->expects(self::once())
+            ->method('execute')
+            ->willThrowException(new ConfigRepositoryException('This is a message'));
+
+        Log::shouldReceive('error')
+            ->withSomeOfArgs('This is a message');
+
+        self::expectException(HttpException::class);
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
+    }
+
+    private function authenticateWithNewToken(): void
     {
         $this->storageAdaptor
             ->expects(self::once())
@@ -136,7 +348,7 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->expects(self::once())
             ->method('authenticate');
 
-        $parser = $this->createPartialMock(Token\Parser::class, ['parse']);
+        $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
             ->expects(self::once())
             ->method('parser')
@@ -147,13 +359,13 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->method('getIdToken')
             ->willReturn('id_token.second_part.third_part');
 
-        $dataSet = $this->createPartialMock(Token\DataSet::class, ['get']);
+        $dataSet = $this->createPartialMock(DataSet::class, ['get']);
         $dataSet
             ->expects(self::exactly(3))
             ->method('get')
             ->withConsecutive(
                 ['sub'],
-                ['name'],
+                ['nickname'],
                 ['email'],
             )
             ->willReturnOnConsecutiveCalls(
@@ -178,6 +390,52 @@ final class OpenIDConnectAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->expects(self::once())
             ->method('put')
             ->with($token);
+    }
+
+    /** @test */
+    public function authenticate_with_redirect(): void
+    {
+        $this->authenticateWithNewToken();
+
+        $this->request
+            ->expects(self::once())
+            ->method('get')
+            ->with('code')
+            ->willReturn(
+                \substr(
+                    \str_shuffle(
+                        \str_repeat(
+                            $x = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                            (int) \ceil(901 / \strlen($x)),
+                        ),
+                    ),
+                    1,
+                    901,
+                ),
+            );
+
+        $this->request
+            ->expects(self::once())
+            ->method('getPathInfo')
+            ->willReturn('/foobar');
+
+        $this->responseFactory
+            ->expects(self::once())
+            ->method('redirectTo')
+            ->with('/foobar');
+
+        Event::fake();
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated, false);
+
+        Event::assertDispatched(UserAuthorizedEvent::class);
+    }
+
+    /** @test */
+    public function authenticate(): void
+    {
+        $this->authenticateWithNewToken();
 
         Event::fake();
 

@@ -31,7 +31,7 @@ final class ConfigRepositoryTest extends TestCase
             ->willReturn([]);
 
         self::expectException(ConfigRepositoryException::class);
-        self::expectExceptionMessage('The config value is not a string');
+        self::expectExceptionMessage('The config value is not a string while it was expected to be');
 
         $configRepository = new ConfigRepository(
             configRepository: $this->illuminateConfigRepository,
@@ -68,7 +68,7 @@ final class ConfigRepositoryTest extends TestCase
             ->willReturn([]);
 
         self::expectException(ConfigRepositoryException::class);
-        self::expectExceptionMessage('The config value is not a bool');
+        self::expectExceptionMessage('The config value is not a bool while it was expected to be');
 
         $configRepository = new ConfigRepository(
             configRepository: $this->illuminateConfigRepository,
@@ -93,5 +93,41 @@ final class ConfigRepositoryTest extends TestCase
         $value = $configRepository->getAsBool('key');
 
         self::assertTrue($value);
+    }
+
+    /** @test */
+    public function get_as_array_invalid(): void
+    {
+        $this->illuminateConfigRepository
+            ->expects(self::once())
+            ->method('get')
+            ->with('key')
+            ->willReturn(true);
+
+        self::expectException(ConfigRepositoryException::class);
+        self::expectExceptionMessage('The config value is not an array while it was expected to be');
+
+        $configRepository = new ConfigRepository(
+            configRepository: $this->illuminateConfigRepository,
+        );
+        $configRepository->getAsArray('key');
+    }
+
+    /** @test */
+    public function get_as_array(): void
+    {
+        $this->illuminateConfigRepository
+            ->expects(self::once())
+            ->method('get')
+            ->with('key')
+            ->willReturn(['foobar']);
+
+        $configRepository = new ConfigRepository(
+            configRepository: $this->illuminateConfigRepository,
+        );
+        /** @noinspection PhpUnhandledExceptionInspection */
+        $value = $configRepository->getAsArray('key');
+
+        self::assertIsArray($value);
     }
 }

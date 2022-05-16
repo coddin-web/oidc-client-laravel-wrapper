@@ -23,11 +23,15 @@ final class OpenIDConnectClientBuilderTest extends TestCase
             [
                 'getAsString',
                 'getAsBool',
+                'getAsArray',
             ],
         );
     }
 
-    /** @test */
+    /**
+     * @test
+     * @noinspection PhpUnhandledExceptionInspection
+     */
     public function authorization_code_flow(): void
     {
         $this->configRepository
@@ -66,6 +70,12 @@ final class OpenIDConnectClientBuilderTest extends TestCase
                 true,
             );
 
+        $this->configRepository
+            ->expects(self::once())
+            ->method('getAsArray')
+            ->with('oidc.client.scopes')
+            ->willReturn(['profile']);
+
         $openIdConnectBuilder = new OpenIDConnectClientBuilder(
             configRepository: $this->configRepository,
         );
@@ -81,9 +91,13 @@ final class OpenIDConnectClientBuilderTest extends TestCase
         self::assertEquals('client_secret', $openIdConnectClient->getClientSecret());
         self::assertEquals('https://oidc.foobar', $openIdConnectClient->getIssuer());
         self::assertFalse($openIdConnectClient->getCodeChallengeMethod());
+        self::assertEquals(['profile'], $openIdConnectClient->getScopes());
     }
 
-    /** @test */
+    /**
+     * @test
+     * @noinspection PhpUnhandledExceptionInspection
+     */
     public function authorization_code_flow_with_PKCE(): void
     {
         $this->configRepository
@@ -120,6 +134,12 @@ final class OpenIDConnectClientBuilderTest extends TestCase
                 true,
             );
 
+        $this->configRepository
+            ->expects(self::once())
+            ->method('getAsArray')
+            ->with('oidc.client.scopes')
+            ->willReturn(['profile']);
+
         $openIdConnectBuilder = new OpenIDConnectClientBuilder(
             configRepository: $this->configRepository,
         );
@@ -135,5 +155,6 @@ final class OpenIDConnectClientBuilderTest extends TestCase
         self::assertNull($openIdConnectClient->getClientSecret());
         self::assertEquals('https://oidc.foobar', $openIdConnectClient->getIssuer());
         self::assertEquals('S256', $openIdConnectClient->getCodeChallengeMethod());
+        self::assertEquals(['profile'], $openIdConnectClient->getScopes());
     }
 }
