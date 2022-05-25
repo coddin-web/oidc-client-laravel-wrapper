@@ -15,9 +15,13 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
     ) {
     }
 
-    public function find(): ?Token
+    public function find(string $type): ?Token
     {
-        $token = $this->sessionStore->get($this->getStorageKey());
+        if ($type !== $this->getAccessTokenStorageKey() && $type !== $this->getRefreshTokenStorageKey()) {
+            return null;
+        }
+
+        $token = $this->sessionStore->get($this->getAccessTokenStorageKey());
         if (!$token instanceof Token) {
             return null;
         }
@@ -25,9 +29,9 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
         return $token;
     }
 
-    public function get(): Token
+    public function get(string $type): Token
     {
-        $token = $this->find();
+        $token = $this->find($type);
 
         if ($token === null) {
             throw MissingTokenException::make();
@@ -36,18 +40,28 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
         return $token;
     }
 
-    public function put(Token $token): void
+    public function put(Token $accessToken, ?string $refreshToken = null): void
     {
-        $this->sessionStore->put($this->getStorageKey(), $token);
+        $this->sessionStore->put($this->getAccessTokenStorageKey(), $accessToken);
+        if ($refreshToken !== null) {
+            $this->sessionStore->put($this->getRefreshTokenStorageKey(), $refreshToken);
+        }
     }
 
     public function forget(): void
     {
-        $this->sessionStore->forget($this->getStorageKey());
+        $this->sessionStore->forget($this->getAccessTokenStorageKey());
+        $this->sessionStore->forget($this->getRefreshTokenStorageKey());
+        $this->sessionStore->save();
     }
 
-    public function getStorageKey(): string
+    public function getAccessTokenStorageKey(): string
     {
-        return 'oidc_id_token';
+        return self::ACCESS_TOKEN_STORAGE_KEY;
+    }
+
+    public function getRefreshTokenStorageKey(): string
+    {
+        return self::REFRESH_TOKEN_STORAGE_KEY;
     }
 }

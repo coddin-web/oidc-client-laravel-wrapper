@@ -17,6 +17,8 @@ A few things are necessary to make this library work:
 When this package is done verifying the token is legit an Event will be fired to be consumed by the target application.
 This event should e.g. perform `Auth::login($user)` to fully let Laravel know this package has handled the authorization.
 
+WIP Events - Also explain logout
+
 You can set up an IDP with [`laravel/passport`][2] or set up your own with e.g. a Symfony application in combination with 
 [`steverhoades/oauth2-openid-connect-server`][3]
 

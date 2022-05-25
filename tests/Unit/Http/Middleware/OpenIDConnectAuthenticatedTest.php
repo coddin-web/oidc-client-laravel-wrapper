@@ -60,10 +60,22 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
     }
 
     /** @test */
+    public function logout_ignore(): void
+    {
+        $this->request
+            ->expects(self::once())
+            ->method('getPathInfo')
+            ->willReturn('/logout');
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated);
+    }
+
+    /** @test */
     public function existing_token_expired(): void
     {
-        $token = $this->createMock(Token::class);
-        $token
+        $accessToken = $this->createMock(Token::class);
+        $accessToken
             ->expects(self::once())
             ->method('isExpired')
             ->willReturn(true);
@@ -71,7 +83,8 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
         $this->storageAdaptor
             ->expects(self::once())
             ->method('find')
-            ->willReturn($token);
+            ->with(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY)
+            ->willReturn($accessToken);
 
         $this->storageAdaptor
             ->expects(self::once())
@@ -83,7 +96,7 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
             ->with('/foobar');
 
         $this->request
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('getPathInfo')
             ->willReturn('/foobar');
 
@@ -91,17 +104,11 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
         $this->handle($openIDConnectAuthenticated, false);
     }
 
-    /**
-     * @test
-     * @dataProvider existingTokenIntrospectData
-     * @param class-string<\Throwable> $exceptionThrow
-     */
-    public function existing_token_introspect_fail(
-        \Exception $exceptionCatch,
-        string $exceptionThrow,
-    ): void {
-        $token = $this->createMock(Token::class);
-        $token
+    /** @test */
+    public function existing_token_still_valid(): void
+    {
+        $accessToken = $this->createPartialMock(Token\Plain::class, ['isExpired', 'claims']);
+        $accessToken
             ->expects(self::once())
             ->method('isExpired')
             ->willReturn(false);
@@ -109,163 +116,118 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
         $this->storageAdaptor
             ->expects(self::once())
             ->method('find')
-            ->willReturn($token);
+            ->with(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY)
+            ->willReturn($accessToken);
 
-        $openIDClient = $this->createMock(OpenIDConnectClient::class);
-        $openIDClient
-            ->expects(self::once())
-            ->method('introspectToken')
-            ->willThrowException($exceptionCatch);
-
-        $this->openIDConnectClientBuilder
-            ->expects(self::once())
-            ->method('execute')
-            ->willReturn($openIDClient);
-
-        self::expectException($exceptionThrow);
-
-        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
-        $this->handle($openIDConnectAuthenticated, false);
-    }
-
-    /**
-     * @return array<int, array{ConfigRepositoryException|OpenIDConnectClientException, string}>
-     */
-    private function existingTokenIntrospectData(): array
-    {
-        return [
-            [
-                new ConfigRepositoryException(''),
-                HttpException::class,
+        $now = new \DateTimeImmutable();
+        $issuedAt = clone $now;
+        $expiresAt = (clone $now)->add(new \DateInterval('PT60M'));
+        $claims = new DataSet(
+            data: [
+                'iat' => $issuedAt,
+                'exp' => $expiresAt,
             ],
-            [
-                new OpenIDConnectClientException(''),
-                HttpException::class,
+            encoded: 'encoded_string',
+        );
+        $accessToken
+            ->expects(self::once())
+            ->method('claims')
+            ->willReturn($claims);
+
+        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
+        $this->handle($openIDConnectAuthenticated);
+    }
+
+    /** @test */
+    public function existing_token_almost_expired(): void
+    {
+        $accessToken = $this->createPartialMock(Token\Plain::class, ['isExpired', 'claims']);
+        $accessToken
+            ->expects(self::once())
+            ->method('isExpired')
+            ->willReturn(false);
+
+        $this->storageAdaptor
+            ->expects(self::once())
+            ->method('find')
+            ->with(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY)
+            ->willReturn($accessToken);
+
+        $now = new \DateTimeImmutable();
+        $issuedAt = (clone $now)->sub(new \DateInterval('PT50M'));
+        $expiresAt = clone $now;
+        $claims = new DataSet(
+            data: [
+                'iat' => $issuedAt,
+                'exp' => $expiresAt,
             ],
-        ];
-    }
-
-    /** @test */
-    public function existing_token_introspect_failed_response(): void
-    {
-        $token = $this->createMock(Token::class);
-        $token
+            encoded: 'encoded_string',
+        );
+        $accessToken
             ->expects(self::once())
-            ->method('isExpired')
-            ->willReturn(false);
+            ->method('claims')
+            ->willReturn($claims);
 
+        $refreshToken = $this->createPartialMock(Token\Plain::class, ['toString']);
         $this->storageAdaptor
             ->expects(self::once())
-            ->method('find')
-            ->willReturn($token);
+            ->method('get')
+            ->with(TokenStorageAdaptor::REFRESH_TOKEN_STORAGE_KEY)
+            ->willReturn($refreshToken);
 
-        $openIDClient = $this->createMock(OpenIDConnectClient::class);
-        $openIDClient
+        $refreshToken
             ->expects(self::once())
-            ->method('introspectToken')
-            ->willReturn([]);
+            ->method('toString')
+            ->willReturn('this_is_a_refresh_token');
 
-        $this->storageAdaptor
-            ->expects(self::once())
-            ->method('forget');
-
+        $openIDConnectClient = $this->createMock(OpenIDConnectClient::class);
         $this->openIDConnectClientBuilder
             ->expects(self::once())
             ->method('execute')
-            ->willReturn($openIDClient);
+            ->willReturn($openIDConnectClient);
 
-        $this->responseFactory
+        $openIDConnectClient
             ->expects(self::once())
-            ->method('redirectTo')
-            ->with('/foobar');
+            ->method('refreshToken')
+            ->with('this_is_a_refresh_token');
 
-        $this->request
-            ->expects(self::once())
-            ->method('getPathInfo')
-            ->willReturn('/foobar');
-
-        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
-        $this->handle($openIDConnectAuthenticated, false);
-    }
-
-    /** @test */
-    public function existing_token_introspect_active_token(): void
-    {
-        $token = $this->createMock(Token::class);
-        $token
-            ->expects(self::once())
-            ->method('isExpired')
-            ->willReturn(false);
-
-        $this->storageAdaptor
-            ->expects(self::once())
-            ->method('find')
-            ->willReturn($token);
-
-        $activeResponse = new \stdClass();
-        $activeResponse->active = true;
-
-        $openIDClient = $this->createMock(OpenIDConnectClient::class);
-        $openIDClient
-            ->expects(self::once())
-            ->method('introspectToken')
-            ->willReturn($activeResponse);
-
-        $this->openIDConnectClientBuilder
+        $jwtVerifier = $this->createPartialMock(Configuration::class, ['parser']);
+        $this->jwtVerifierBuilder
             ->expects(self::once())
             ->method('execute')
-            ->willReturn($openIDClient);
+            ->willReturn($jwtVerifier);
 
-        $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
-        $return = $this->handle($openIDConnectAuthenticated);
-
-        self::assertEquals('arbitrary_value', $return);
-    }
-
-    /** @test */
-    public function existing_token_introspect_inactive_token(): void
-    {
-        $token = $this->createMock(Token::class);
-        $token
+        /** @var Parser & MockObject $parser */
+        $parser = $this->createPartialMock(Parser::class, ['parse']);
+        $jwtVerifier
             ->expects(self::once())
-            ->method('isExpired')
-            ->willReturn(false);
+            ->method('parser')
+            ->willReturn($parser);
+
+        $openIDConnectClient
+            ->expects(self::once())
+            ->method('getAccessToken')
+            ->willReturn('this_is_an_access_token');
+
+        $newAccessToken = $this->createMock(Token::class);
+        $parser
+            ->expects(self::once())
+            ->method('parse')
+            ->with('this_is_an_access_token')
+            ->willReturn($newAccessToken);
+
+        $openIDConnectClient
+            ->expects(self::once())
+            ->method('getRefreshToken')
+            ->willReturn('this_is_a_refresh_token');
 
         $this->storageAdaptor
             ->expects(self::once())
-            ->method('find')
-            ->willReturn($token);
-
-        $activeResponse = new \stdClass();
-        $activeResponse->active = false;
-
-        $openIDClient = $this->createMock(OpenIDConnectClient::class);
-        $openIDClient
-            ->expects(self::once())
-            ->method('introspectToken')
-            ->willReturn($activeResponse);
-
-        $this->openIDConnectClientBuilder
-            ->expects(self::once())
-            ->method('execute')
-            ->willReturn($openIDClient);
-
-        $this->storageAdaptor
-            ->expects(self::once())
-            ->method('forget');
-
-        $this->responseFactory
-            ->expects(self::once())
-            ->method('redirectTo')
-            ->with('/foobar');
-
-        $this->request
-            ->expects(self::once())
-            ->method('getPathInfo')
-            ->willReturn('/foobar');
+            ->method('put')
+            ->with($newAccessToken, 'this_is_a_refresh_token');
 
         $openIDConnectAuthenticated = $this->createOpenIDConnectAuthenticated();
-        $this->handle($openIDConnectAuthenticated, false);
+        $this->handle($openIDConnectAuthenticated);
     }
 
     /** @test */
@@ -350,9 +312,14 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
 
         $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('parser')
             ->willReturn($parser);
+
+        $openIDClient
+            ->expects(self::once())
+            ->method('getAccessToken')
+            ->willReturn('access_token.second_part.third_part');
 
         $openIDClient
             ->expects(self::once())
@@ -374,22 +341,39 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
                 'email@test.test',
             );
 
-        $token = $this->createPartialMock(Token\Plain::class, ['claims']);
-        $token
+        $accessToken = $this->createPartialMock(Token\Plain::class, []);
+
+        $idToken = $this->createPartialMock(Token\Plain::class, ['claims']);
+        $idToken
             ->expects(self::exactly(3))
             ->method('claims')
             ->willReturn($dataSet);
 
         $parser
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('parse')
-            ->with('id_token.second_part.third_part')
-            ->willReturn($token);
+            ->withConsecutive(
+                ['access_token.second_part.third_part'],
+                ['id_token.second_part.third_part'],
+            )
+            ->willReturnOnConsecutiveCalls(
+                $accessToken,
+                $idToken,
+            );
+
+        $refreshToken = 'asdf';
+        $openIDClient
+            ->expects(self::once())
+            ->method('getRefreshToken')
+            ->willReturn($refreshToken);
 
         $this->storageAdaptor
             ->expects(self::once())
             ->method('put')
-            ->with($token);
+            ->with(
+                $accessToken,
+                $refreshToken,
+            );
     }
 
     /** @test */
@@ -410,12 +394,12 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
                         ),
                     ),
                     1,
-                    901,
+                    801,
                 ),
             );
 
         $this->request
-            ->expects(self::once())
+            ->expects(self::exactly(3))
             ->method('getPathInfo')
             ->willReturn('/foobar');
 

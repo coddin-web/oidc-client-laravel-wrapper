@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 // phpcs:disable PSR1.Methods.CamelCapsMethodName
 final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
 {
-    /** @var \Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor & MockObject */
+    /** @var TokenStorageAdaptor & MockObject */
     private TokenStorageAdaptor|MockObject $storageAdaptor;
     /** @var JWTVerifierBuilder & MockObject */
     private JWTVerifierBuilder|MockObject $jwtVerifierBuilder;
@@ -91,6 +91,7 @@ final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->method('execute')
             ->willReturn($jwtVerifier);
 
+        /** @var Parser & MockObject $parser */
         $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
             ->expects(self::once())
@@ -127,6 +128,7 @@ final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->method('execute')
             ->willReturn($jwtVerifier);
 
+        /** @var Parser & MockObject $parser */
         $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
             ->expects(self::once())
@@ -174,6 +176,7 @@ final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
             ->method('execute')
             ->willReturn($jwtVerifier);
 
+        /** @var Parser & MockObject $parser */
         $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
             ->expects(self::once())

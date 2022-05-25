@@ -9,9 +9,12 @@ use Coddin\OpenIDConnectClient\Builder\OpenIDConnectClientBuilder;
 use Coddin\OpenIDConnectClient\Event\UserAuthorizedEvent;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
+use Coddin\OpenIDConnectClient\Helper\DateTimeDiffCalculator;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\Exception\MissingTokenException;
 use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Illuminate\Http\Request;
 use Illuminate\Routing\ResponseFactory;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Jumbojett\OpenIDConnectClientException;
 use Lcobucci\JWT\Token\Plain;
@@ -30,30 +33,42 @@ final class OpenIDConnectAuthenticated
     }
 
     /**
-     * @throws HttpException
+     * @throws ConfigRepositoryException
+     * @throws MissingTokenException
+     * @throws OpenIDConnectClientException
      */
     public function handle(Request $request, \Closure $next): mixed
     {
-        $token = $this->tokenStorageAdaptor->find();
+        if (\str_contains($request->getPathInfo(), 'logout')) {
+            return $next($request);
+        }
 
-        if ($token !== null) {
-            return $this->handleExistingToken($token, $request, $next);
+        $accessToken = $this->tokenStorageAdaptor->find(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY);
+
+        if ($accessToken !== null) {
+            return $this->handleExistingToken($accessToken, $request, $next);
         }
 
         try {
             $jwtVerifier = $this->jwtVerifierBuilder->execute();
             $openIDClient = $this->openIDConnectClientBuilder->execute();
+
+            // Dynamically set the redirect URL?
+            $openIDClient->setRedirectURL($this->configRepository->getAsString('app.url') . $request->getPathInfo());
+
             $openIDClient->authenticate();
 
-            /** @var Plain $token */
-            $token = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
+            $accessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
             $this->tokenStorageAdaptor->put(
-                token: $token,
+                accessToken: $accessToken,
+                refreshToken: $openIDClient->getRefreshToken(),
             );
 
-            $userUuid = $token->claims()->get('sub');
-            $userName = $token->claims()->get('nickname');
-            $userEmail = $token->claims()->get('email');
+            /** @var Plain $idToken */
+            $idToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
+            $userUuid = $idToken->claims()->get('sub');
+            $userName = $idToken->claims()->get('nickname');
+            $userEmail = $idToken->claims()->get('email');
 
             UserAuthorizedEvent::dispatch(
                 $userUuid,
@@ -74,48 +89,54 @@ final class OpenIDConnectAuthenticated
         // Consume the code from the URL and redirect to the intended URL without
         // the query parameter still visible.
         $oauthCode = $request->get('code');
-        if (is_string($oauthCode) && strlen($oauthCode) > 900) {
+        if (is_string($oauthCode) && strlen($oauthCode) > 800) {
             return $this->responseFactory->redirectTo($request->getPathInfo());
         }
 
         return $next($request);
     }
 
+    /**
+     * @throws OpenIDConnectClientException
+     * @throws MissingTokenException
+     * @throws ConfigRepositoryException
+     */
     private function handleExistingToken(
-        \Lcobucci\JWT\Token $token,
+        \Lcobucci\JWT\Token $accessToken,
         Request $request,
         \Closure $next,
     ): mixed {
-        if ($token->isExpired(new \DateTimeImmutable())) {
+        if ($accessToken->isExpired(new \DateTimeImmutable())) {
             $this->tokenStorageAdaptor->forget();
+            Auth::logout();
 
             return $this->responseFactory->redirectTo($request->getPathInfo());
         }
 
-        try {
+        /** @var Plain $accessToken */
+        $claims = $accessToken->claims();
+        /** @var \DateTimeInterface $issuedAt */
+        $issuedAt = $claims->get('iat');
+        /** @var \DateTimeInterface $expiresAt */
+        $expiresAt = $claims->get('exp');
+
+        $validityInSeconds = DateTimeDiffCalculator::differenceInSeconds($issuedAt, $expiresAt);
+        $secondsLeft = DateTimeDiffCalculator::differenceInSeconds(new \DateTimeImmutable(), $expiresAt);
+        $percentageLeft = (($secondsLeft / $validityInSeconds) * 100);
+
+        if ($percentageLeft <= 25) {
+            $refreshToken = $this->tokenStorageAdaptor->get(TokenStorageAdaptor::REFRESH_TOKEN_STORAGE_KEY);
             $openIDClient = $this->openIDConnectClientBuilder->execute();
-            $stillActiveResponse = $openIDClient->introspectToken(
-                token: $token->toString(),
-                clientSecret: $this->configRepository->getAsString('oidc.client.secret'),
+            $openIDClient->refreshToken($refreshToken->toString());
+
+            $jwtVerifier = $this->jwtVerifierBuilder->execute();
+            $newAccessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
+            $this->tokenStorageAdaptor->put(
+                accessToken: $newAccessToken,
+                refreshToken: $openIDClient->getRefreshToken(),
             );
-        } catch (ConfigRepositoryException | OpenIDConnectClientException $e) {
-            throw new HttpException(Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        if (!\is_object($stillActiveResponse)) {
-            $this->tokenStorageAdaptor->forget();
-
-            return $this->responseFactory->redirectTo($request->getPathInfo());
-        }
-
-        // This is a shortcoming of the library returning an unstructured object.
-        /* @phpstan-ignore-next-line */
-        if ($stillActiveResponse->active === true) {
-            return $next($request);
-        } else {
-            $this->tokenStorageAdaptor->forget();
-
-            return $this->responseFactory->redirectTo($request->getPathInfo());
-        }
+        return $next($request);
     }
 }

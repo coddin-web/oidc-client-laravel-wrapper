@@ -6,6 +6,7 @@ namespace Coddin\Tests\Unit\Storage;
 
 use Coddin\OpenIDConnectClient\Service\Token\Storage\Exception\MissingTokenException;
 use Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken;
+use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Illuminate\Session\Store;
 use Lcobucci\JWT\Token;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -23,21 +24,32 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
     }
 
     /** @test */
+    public function incorrect_token_type(): void
+    {
+        $tokenAdaptor = new IlluminateSessionAdaptorToken(
+            sessionStore: $this->store,
+        );
+        $return = $tokenAdaptor->find('not_correct');
+
+        self::assertNull($return);
+    }
+
+    /** @test */
     public function missing_token_in_session(): void
     {
         $this->store
             ->expects(self::once())
             ->method('get')
-            ->with('oidc_id_token')
+            ->with('oidc_id_access_token')
             ->willReturn(null);
 
         self::expectException(MissingTokenException::class);
         self::expectExceptionMessage('Stored token is not of instance `Lcobucci\JWT\Token`');
 
-        $tokenAdaptor = new \Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken(
+        $tokenAdaptor = new IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
         );
-        $tokenAdaptor->get();
+        $tokenAdaptor->get(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY);
     }
 
     /** @test */
@@ -48,25 +60,25 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         $this->store
             ->expects(self::once())
             ->method('get')
-            ->with('oidc_id_token')
+            ->with('oidc_id_access_token')
             ->willReturn($token);
 
-        $tokenAdaptor = new \Coddin\OpenIDConnectClient\Service\Token\Storage\IlluminateSessionAdaptorToken(
+        $tokenAdaptor = new IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
         );
         /** @noinspection PhpUnhandledExceptionInspection */
-        $tokenAdaptor->get();
+        $tokenAdaptor->get(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY);
     }
 
     /** @test */
-    public function put_token(): void
+    public function put_accessToken_only(): void
     {
         $token = $this->createPartialMock(Token::class, []);
 
         $this->store
             ->expects(self::once())
             ->method('put')
-            ->with('oidc_id_token', $token);
+            ->with('oidc_id_access_token', $token);
 
         $tokenAdaptor = new IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
@@ -75,11 +87,41 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
     }
 
     /** @test */
+    public function put_accessToken_and_refreshToken(): void
+    {
+        $accessToken = $this->createPartialMock(Token::class, []);
+        $refreshToken = 'this_is_a_refresh_token';
+
+        $this->store
+            ->expects(self::exactly(2))
+            ->method('put')
+            ->withConsecutive(
+                [
+                    'oidc_id_access_token',
+                    $accessToken,
+                ],
+                [
+                    'oidc_id_refresh_token',
+                    $refreshToken,
+                ],
+            );
+
+        $tokenAdaptor = new IlluminateSessionAdaptorToken(
+            sessionStore: $this->store,
+        );
+        $tokenAdaptor->put($accessToken, $refreshToken);
+    }
+
+    /** @test */
     public function forget_token(): void
     {
         $this->store
-            ->expects(self::once())
-            ->method('forget');
+            ->expects(self::exactly(2))
+            ->method('forget')
+            ->withConsecutive(
+                [TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY],
+                [TokenStorageAdaptor::REFRESH_TOKEN_STORAGE_KEY],
+            );
 
         $tokenAdaptor = new IlluminateSessionAdaptorToken(
             sessionStore: $this->store,

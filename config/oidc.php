@@ -14,6 +14,9 @@ return [
             'profile',
             'email',
         ],
+        'logout' => [
+            'redirect_after' => '/',
+        ],
     ],
     'private_key' => [
         'base64' => env('OIDC_BASE64_PRIVATE_KEY'),

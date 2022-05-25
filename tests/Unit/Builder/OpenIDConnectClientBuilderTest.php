@@ -80,7 +80,7 @@ final class OpenIDConnectClientBuilderTest extends TestCase
             configRepository: $this->configRepository,
         );
         /** @noinspection PhpUnhandledExceptionInspection */
-        $openIdConnectClient = $openIdConnectBuilder->execute();
+        $openIdConnectClient = $openIdConnectBuilder->execute(true);
 
         self::assertInstanceOf(OpenIDConnectClient::class, $openIdConnectClient);
         // Obviously this is actually testing the Client, which is beyond our scope,

@@ -18,11 +18,16 @@ final class OpenIDConnectClientBuilder
     /**
      * @throws ConfigRepositoryException
      */
-    public function execute(): OpenIDConnectClient
+    public function execute(bool $public = false): OpenIDConnectClient|OpenIDConnectClientProviderConfigurationPublic
     {
         $appUrl = $this->configRepository->getAsString('app.url');
 
-        $openIDClient = new \Jumbojett\OpenIDConnectClient(
+        $clientClass = match ($public) {
+            true => OpenIDConnectClientProviderConfigurationPublic::class,
+            false => \Jumbojett\OpenIDConnectClient::class,
+        };
+
+        $openIDClient = new $clientClass(
             provider_url: $this->configRepository->getAsString('oidc.provider.endpoint'),
             client_id: $this->configRepository->getAsString('oidc.client.id'),
             client_secret: $this->determineClientSecret(),
