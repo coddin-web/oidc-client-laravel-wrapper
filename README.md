@@ -17,13 +17,16 @@ A few things are necessary to make this library work:
 When this package is done verifying the token is legit an Event will be fired to be consumed by the target application.
 This event should e.g. perform `Auth::login($user)` to fully let Laravel know this package has handled the authorization.
 
-WIP Events - Also explain logout
+The `UserAuthorizedEvent` will broadcast a userUuid, userName and userEmail, your application should already know the user by one of these values (preferably the UUID).
+
+Logging out (also the IDP) is not fully implemented yet.
+To do it "locally" the only thing needed is to kill the session.
 
 You can set up an IDP with [`laravel/passport`][2] or set up your own with e.g. a Symfony application in combination with 
 [`steverhoades/oauth2-openid-connect-server`][3]
 
-Or better yet use our IDP package which ***is*** a Symfony application with the above-mentioned library fully implemented.
-(if we make it public that is...)
+Or better yet use our IDP package which ***is*** a ready to use Symfony bundle with a clear and concise readme and with the above-mentioned library fully implemented.
+[OpenIDConnect IDP Symfony bundle](https://github.com/coddin-web/idp-openid-connect-bundle)
 
 [1]: https://github.com/jumbojett/OpenID-Connect-PHP
 [2]: https://laravel.com/docs/9.x/passport
