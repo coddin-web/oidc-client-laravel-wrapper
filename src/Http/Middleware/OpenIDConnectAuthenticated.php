@@ -58,7 +58,7 @@ final class OpenIDConnectAuthenticated
 
             $openIDClient->authenticate();
 
-            $accessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
+            $accessToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
             $this->tokenStorageAdaptor->put(
                 accessToken: $accessToken,
                 refreshToken: $openIDClient->getRefreshToken(),
