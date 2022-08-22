@@ -41,13 +41,13 @@ final class JWTVerifierBuilder
                 new IssuedBy(
                     id: $this->configRepository->getAsString('oidc.provider.issuer'),
                 ),
-                new SignedWith(
-                    signer: $signer,
-                    key: $key,
-                ),
-                new StrictValidAt(
-                    clock: new FrozenClock(new \DateTimeImmutable()),
-                ),
+//                new SignedWith(
+//                    signer: $signer,
+//                    key: $key,
+//                ),
+//                new StrictValidAt(
+//                    clock: new FrozenClock(new \DateTimeImmutable()),
+//                ),
             );
 
         return $configuration;
