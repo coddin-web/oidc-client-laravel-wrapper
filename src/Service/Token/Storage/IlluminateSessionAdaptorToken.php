@@ -17,11 +17,7 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
 
     public function find(string $type): ?Token
     {
-        if ($type !== $this->getAccessTokenStorageKey() && $type !== $this->getRefreshTokenStorageKey()) {
-            return null;
-        }
-
-        $token = $this->sessionStore->get($this->getAccessTokenStorageKey());
+        $token = $this->sessionStore->get($type);
         if (!$token instanceof Token) {
             return null;
         }
@@ -40,8 +36,10 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
         return $token;
     }
 
-    public function put(Token $accessToken, ?string $refreshToken = null): void
-    {
+    public function put(
+        Token $accessToken,
+        ?string $refreshToken = null,
+    ): void {
         $this->sessionStore->put($this->getAccessTokenStorageKey(), $accessToken);
         if ($refreshToken !== null) {
             $this->sessionStore->put($this->getRefreshTokenStorageKey(), $refreshToken);

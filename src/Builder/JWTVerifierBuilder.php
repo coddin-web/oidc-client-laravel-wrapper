@@ -6,13 +6,10 @@ namespace Coddin\OpenIDConnectClient\Builder;
 
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
-use Lcobucci\Clock\FrozenClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
-use Lcobucci\JWT\Validation\Constraint\SignedWith;
-use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 
 final class JWTVerifierBuilder
 {
@@ -41,13 +38,6 @@ final class JWTVerifierBuilder
                 new IssuedBy(
                     id: $this->configRepository->getAsString('oidc.provider.issuer'),
                 ),
-//                new SignedWith(
-//                    signer: $signer,
-//                    key: $key,
-//                ),
-//                new StrictValidAt(
-//                    clock: new FrozenClock(new \DateTimeImmutable()),
-//                ),
             );
 
         return $configuration;

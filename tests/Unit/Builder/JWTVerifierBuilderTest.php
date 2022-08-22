@@ -7,8 +7,6 @@ namespace Coddin\Tests\Unit\Builder;
 use Coddin\OpenIDConnectClient\Builder\JWTVerifierBuilder;
 use Coddin\OpenIDConnectClient\Helper\ConfigRepository;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
-use Lcobucci\JWT\Validation\Constraint\SignedWith;
-use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -46,18 +44,12 @@ final class JWTVerifierBuilderTest extends TestCase
 
         $constraints = $jwtVerifier->validationConstraints();
 
-        self::assertCount(3, $constraints);
+        self::assertCount(1, $constraints);
 
-        $expectedNrOfMatches = 3;
+        $expectedNrOfMatches = 1;
         $countedNrOfMatches = 0;
         foreach ($constraints as $constraint) {
             if ($constraint instanceof IssuedBy) {
-                $countedNrOfMatches++;
-            }
-            if ($constraint instanceof SignedWith) {
-                $countedNrOfMatches++;
-            }
-            if ($constraint instanceof StrictValidAt) {
                 $countedNrOfMatches++;
             }
         }

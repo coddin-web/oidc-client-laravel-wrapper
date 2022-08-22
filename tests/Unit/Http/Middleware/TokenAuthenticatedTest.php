@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpMissingFieldTypeInspection */
+
 declare(strict_types=1);
 
 namespace Coddin\Tests\Unit\Http\Middleware;
@@ -24,14 +26,14 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 final class TokenAuthenticatedTest extends \Orchestra\Testbench\TestCase
 {
     /** @var TokenStorageAdaptor & MockObject */
-    private TokenStorageAdaptor|MockObject $storageAdaptor;
+    private $storageAdaptor;
     /** @var JWTVerifierBuilder & MockObject */
-    private JWTVerifierBuilder|MockObject $jwtVerifierBuilder;
+    private $jwtVerifierBuilder;
 
     /** @var Request & MockObject */
-    private Request|MockObject $request;
+    private $request;
     /** @var ClosureTestClass & MockObject */
-    private ClosureTestClass|MockObject $closure;
+    private $closure;
 
     protected function setUp(): void
     {

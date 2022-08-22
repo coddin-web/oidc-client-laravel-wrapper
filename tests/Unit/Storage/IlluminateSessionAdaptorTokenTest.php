@@ -40,7 +40,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         $this->store
             ->expects(self::once())
             ->method('get')
-            ->with('oidc_id_access_token')
+            ->with('oidc_session_key_access_token')
             ->willReturn(null);
 
         self::expectException(MissingTokenException::class);
@@ -60,7 +60,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         $this->store
             ->expects(self::once())
             ->method('get')
-            ->with('oidc_id_access_token')
+            ->with('oidc_session_key_access_token')
             ->willReturn($token);
 
         $tokenAdaptor = new IlluminateSessionAdaptorToken(
@@ -78,7 +78,7 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
         $this->store
             ->expects(self::once())
             ->method('put')
-            ->with('oidc_id_access_token', $token);
+            ->with('oidc_session_key_access_token', $token);
 
         $tokenAdaptor = new IlluminateSessionAdaptorToken(
             sessionStore: $this->store,
@@ -97,11 +97,11 @@ final class IlluminateSessionAdaptorTokenTest extends TestCase
             ->method('put')
             ->withConsecutive(
                 [
-                    'oidc_id_access_token',
+                    'oidc_session_key_access_token',
                     $accessToken,
                 ],
                 [
-                    'oidc_id_refresh_token',
+                    'oidc_session_key_refresh_token',
                     $refreshToken,
                 ],
             );

@@ -58,14 +58,13 @@ final class OpenIDConnectAuthenticated
 
             $openIDClient->authenticate();
 
-            $accessToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
+            $idToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
             $this->tokenStorageAdaptor->put(
-                accessToken: $accessToken,
+                accessToken: $idToken,
                 refreshToken: $openIDClient->getRefreshToken(),
             );
 
             /** @var Plain $idToken */
-            $idToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
             $userUuid = $idToken->claims()->get('sub');
             $userName = $idToken->claims()->get('nickname');
             $userEmail = $idToken->claims()->get('email');
@@ -130,9 +129,10 @@ final class OpenIDConnectAuthenticated
             $openIDClient->refreshToken($refreshToken->toString());
 
             $jwtVerifier = $this->jwtVerifierBuilder->execute();
-            $newAccessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
+            $newIdToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
+
             $this->tokenStorageAdaptor->put(
-                accessToken: $newAccessToken,
+                accessToken: $newIdToken,
                 refreshToken: $openIDClient->getRefreshToken(),
             );
         }

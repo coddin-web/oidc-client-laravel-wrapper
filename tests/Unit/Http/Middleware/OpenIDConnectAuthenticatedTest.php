@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpMissingFieldTypeInspection */
+
 declare(strict_types=1);
 
 namespace Coddin\Tests\Unit\Http\Middleware;
@@ -30,20 +32,20 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 final class OpenIDConnectAuthenticatedTest extends TestCase
 {
     /** @var ResponseFactory & MockObject */
-    private ResponseFactory|MockObject $responseFactory;
+    private $responseFactory;
     /** @var OpenIDConnectClientBuilder & MockObject */
-    private OpenIDConnectClientBuilder|MockObject $openIDConnectClientBuilder;
+    private $openIDConnectClientBuilder;
     /** @var JWTVerifierBuilder & MockObject */
-    private JWTVerifierBuilder|MockObject $jwtVerifierBuilder;
+    private $jwtVerifierBuilder;
     /** @var TokenStorageAdaptor & MockObject */
-    private TokenStorageAdaptor|MockObject $storageAdaptor;
+    private $storageAdaptor;
     /** @var ConfigRepository & MockObject */
-    private ConfigRepository|MockObject $configRepository;
+    private $configRepository;
 
     /** @var Request & MockObject */
-    private Request|MockObject $request;
+    private $request;
     /** @var ClosureTestClass & MockObject */
-    private ClosureTestClass|MockObject $closure;
+    private $closure;
 
     protected function setUp(): void
     {
@@ -206,7 +208,7 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
 
         $openIDConnectClient
             ->expects(self::once())
-            ->method('getAccessToken')
+            ->method('getIdToken')
             ->willReturn('this_is_an_access_token');
 
         $newAccessToken = $this->createMock(Token::class);
@@ -312,14 +314,9 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
 
         $parser = $this->createPartialMock(Parser::class, ['parse']);
         $jwtVerifier
-            ->expects(self::exactly(2))
+            ->expects(self::once())
             ->method('parser')
             ->willReturn($parser);
-
-        $openIDClient
-            ->expects(self::once())
-            ->method('getAccessToken')
-            ->willReturn('access_token.second_part.third_part');
 
         $openIDClient
             ->expects(self::once())
@@ -341,8 +338,6 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
                 'email@test.test',
             );
 
-        $accessToken = $this->createPartialMock(Token\Plain::class, []);
-
         $idToken = $this->createPartialMock(Token\Plain::class, ['claims']);
         $idToken
             ->expects(self::exactly(3))
@@ -350,14 +345,12 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
             ->willReturn($dataSet);
 
         $parser
-            ->expects(self::exactly(2))
+            ->expects(self::once())
             ->method('parse')
             ->withConsecutive(
-                ['access_token.second_part.third_part'],
                 ['id_token.second_part.third_part'],
             )
             ->willReturnOnConsecutiveCalls(
-                $accessToken,
                 $idToken,
             );
 
@@ -371,7 +364,7 @@ final class OpenIDConnectAuthenticatedTest extends TestCase
             ->expects(self::once())
             ->method('put')
             ->with(
-                $accessToken,
+                $idToken,
                 $refreshToken,
             );
     }
