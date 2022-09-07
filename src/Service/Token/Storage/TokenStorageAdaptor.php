@@ -28,6 +28,8 @@ interface TokenStorageAdaptor
 
     public function forget(): void;
 
+    public function getIdTokenStorageKey(): string;
+
     public function getAccessTokenStorageKey(): string;
 
     public function getRefreshTokenStorageKey(): string;
