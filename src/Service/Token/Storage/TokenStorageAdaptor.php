@@ -9,6 +9,7 @@ use Lcobucci\JWT\Token;
 
 interface TokenStorageAdaptor
 {
+    public const ID_TOKEN_STORAGE_KEY = 'oidc_session_key_id_token';
     public const ACCESS_TOKEN_STORAGE_KEY = 'oidc_session_key_access_token';
     public const REFRESH_TOKEN_STORAGE_KEY = 'oidc_session_key_refresh_token';
 
@@ -20,12 +21,12 @@ interface TokenStorageAdaptor
     public function get(string $type): Token;
 
     public function put(
+        Token $idToken,
         Token $accessToken,
         ?string $refreshToken = null,
     ): void;
 
     public function forget(): void;
-
 
     public function getAccessTokenStorageKey(): string;
 

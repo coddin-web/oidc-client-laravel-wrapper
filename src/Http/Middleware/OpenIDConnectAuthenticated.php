@@ -43,10 +43,15 @@ final class OpenIDConnectAuthenticated
             return $next($request);
         }
 
+        $idToken = $this->tokenStorageAdaptor->find(TokenStorageAdaptor::ID_TOKEN_STORAGE_KEY);
         $accessToken = $this->tokenStorageAdaptor->find(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY);
 
-        if ($accessToken !== null) {
-            return $this->handleExistingToken($accessToken, $request, $next);
+        if ($idToken !== null && $accessToken !== null) {
+            return $this->handleExistingToken(
+                accessToken: $accessToken,
+                request: $request,
+                next: $next,
+            );
         }
 
         try {
@@ -58,9 +63,11 @@ final class OpenIDConnectAuthenticated
 
             $openIDClient->authenticate();
 
+            $accessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
             $idToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
             $this->tokenStorageAdaptor->put(
-                accessToken: $idToken,
+                idToken: $idToken,
+                accessToken: $accessToken,
                 refreshToken: $openIDClient->getRefreshToken(),
             );
 
@@ -130,9 +137,11 @@ final class OpenIDConnectAuthenticated
 
             $jwtVerifier = $this->jwtVerifierBuilder->execute();
             $newIdToken = $jwtVerifier->parser()->parse($openIDClient->getIdToken());
+            $newAccessToken = $jwtVerifier->parser()->parse($openIDClient->getAccessToken());
 
             $this->tokenStorageAdaptor->put(
-                accessToken: $newIdToken,
+                idToken: $newIdToken,
+                accessToken: $newAccessToken,
                 refreshToken: $openIDClient->getRefreshToken(),
             );
         }

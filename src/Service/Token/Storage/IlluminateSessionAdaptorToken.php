@@ -37,9 +37,11 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
     }
 
     public function put(
+        Token $idToken,
         Token $accessToken,
         ?string $refreshToken = null,
     ): void {
+        $this->sessionStore->put($this->getIdTokenStorageKey(), $idToken);
         $this->sessionStore->put($this->getAccessTokenStorageKey(), $accessToken);
         if ($refreshToken !== null) {
             $this->sessionStore->put($this->getRefreshTokenStorageKey(), $refreshToken);
@@ -48,9 +50,15 @@ final class IlluminateSessionAdaptorToken implements TokenStorageAdaptor
 
     public function forget(): void
     {
+        $this->sessionStore->forget($this->getIdTokenStorageKey());
         $this->sessionStore->forget($this->getAccessTokenStorageKey());
         $this->sessionStore->forget($this->getRefreshTokenStorageKey());
         $this->sessionStore->save();
+    }
+
+    public function getIdTokenStorageKey(): string
+    {
+        return self::ID_TOKEN_STORAGE_KEY;
     }
 
     public function getAccessTokenStorageKey(): string
