@@ -9,6 +9,7 @@ use Coddin\OpenIDConnectClient\Helper\ConfigRepositoryException;
 use Coddin\OpenIDConnectClient\Service\Token\Storage\TokenStorageAdaptor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Token\InvalidTokenStructure;
 use Lcobucci\JWT\Token\UnsupportedHeaderFound;
@@ -66,7 +67,7 @@ final class TokenAuthenticated
             throw new HttpException(Response::HTTP_UNAUTHORIZED);
         }
 
-        $this->storageAdaptor->put($token);
+        Session::put(TokenStorageAdaptor::ID_TOKEN_STORAGE_KEY, $token);
 
         return $next($request);
     }
