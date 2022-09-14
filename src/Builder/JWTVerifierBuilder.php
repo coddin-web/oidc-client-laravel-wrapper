@@ -33,12 +33,12 @@ final class JWTVerifierBuilder
             key: $key,
         );
 
-        $configuration
-            ->setValidationConstraints(
-                new IssuedBy(
-                    id: $this->configRepository->getAsString('oidc.provider.issuer'),
-                ),
-            );
+//        $configuration
+//            ->setValidationConstraints(
+//                new IssuedBy(
+//                    id: $this->configRepository->getAsString('oidc.provider.issuer'),
+//                ),
+//            );
 
         return $configuration;
     }
