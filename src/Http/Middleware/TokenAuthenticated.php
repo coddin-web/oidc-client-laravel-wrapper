@@ -68,7 +68,7 @@ final class TokenAuthenticated
 //            throw new HttpException(Response::HTTP_UNAUTHORIZED);
 //        }
 
-        Session::put(TokenStorageAdaptor::ID_TOKEN_STORAGE_KEY, $token);
+        Session::put(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY, $token);
 
         return $next($request);
     }
