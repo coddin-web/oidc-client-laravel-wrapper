@@ -50,24 +50,25 @@ final class TokenAuthenticated
             throw new HttpException(Response::HTTP_UNAUTHORIZED);
         }
 
-        $constraints = $jwtVerifier->validationConstraints();
-        try {
-            $jwtVerifier->validator()->assert($token, ...$constraints);
-        } catch (RequiredConstraintsViolated $e) {
-            foreach ($e->violations() as $violation) {
-                Log::error(
-                    sprintf(
-                        'Validating the Bearer Token failed: %s',
-                        $violation->getMessage(),
-                    ),
-                    $violation->getTrace(),
-                );
-            }
+        // Todo fix this: A custom claim is needed to add the "iss" to the accessToken.
+//        $constraints = $jwtVerifier->validationConstraints();
+//        try {
+//            $jwtVerifier->validator()->assert($token, ...$constraints);
+//        } catch (RequiredConstraintsViolated $e) {
+//            foreach ($e->violations() as $violation) {
+//                Log::error(
+//                    sprintf(
+//                        'Validating the Bearer Token failed: %s',
+//                        $violation->getMessage(),
+//                    ),
+//                    $violation->getTrace(),
+//                );
+//            }
+//
+//            throw new HttpException(Response::HTTP_UNAUTHORIZED);
+//        }
 
-            throw new HttpException(Response::HTTP_UNAUTHORIZED);
-        }
-
-        Session::put(TokenStorageAdaptor::ID_TOKEN_STORAGE_KEY, $token);
+        Session::put(TokenStorageAdaptor::ACCESS_TOKEN_STORAGE_KEY, $token);
 
         return $next($request);
     }

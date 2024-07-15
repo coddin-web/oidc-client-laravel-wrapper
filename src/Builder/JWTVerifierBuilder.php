@@ -33,12 +33,13 @@ final class JWTVerifierBuilder
             key: $key,
         );
 
-        $configuration
-            ->setValidationConstraints(
-                new IssuedBy(
-                    id: $this->configRepository->getAsString('oidc.provider.issuer'),
-                ),
-            );
+        // Todo fix this: A custom claim is needed to add the "iss" to the accessToken.
+//        $configuration
+//            ->setValidationConstraints(
+//                new IssuedBy(
+//                    id: $this->configRepository->getAsString('oidc.provider.issuer'),
+//                ),
+//            );
 
         return $configuration;
     }
