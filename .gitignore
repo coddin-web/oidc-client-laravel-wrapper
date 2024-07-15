@@ -6,3 +6,6 @@ composer.lock
 coverage/
 reports/
 .phpunit.result.cache
+
+.idea/
+.DS_Store
