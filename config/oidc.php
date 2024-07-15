@@ -3,6 +3,7 @@
 return [
     'provider' => [
         'endpoint' => env('OIDC_PROVIDER'),
+        'logout_endpoint' => env('OIDC_PROVIDER_LOGOUT', env('OIDC_PROVIDER') . '/logout'),
         'issuer' => env('OIDC_ISSUER', env('OIDC_PROVIDER')),
     ],
     'client' => [

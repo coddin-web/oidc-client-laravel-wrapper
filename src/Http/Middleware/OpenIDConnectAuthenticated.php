@@ -116,7 +116,9 @@ final class OpenIDConnectAuthenticated
             $this->tokenStorageAdaptor->forget();
             Auth::logout();
 
-            return $this->responseFactory->redirectTo($request->getPathInfo());
+            return $this->responseFactory->redirectTo(
+                $this->configRepository->getAsString('oidc.provider.logout_endpoint'),
+            );
         }
 
         /** @var Plain $accessToken */
